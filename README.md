@@ -2,7 +2,7 @@
 
 # TODO LIST:
 1. Data Part
-    1. Seperate data based on different date(by days).
+    1. (Done)Seperate data based on different date(by days).
     2. Seperate dataset into train dataset and test dataset.
     2. Build a dataset return a batch of data.
 
