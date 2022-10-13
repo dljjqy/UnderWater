@@ -1,5 +1,5 @@
 import numpy as np
-import padas as pd
+import pandas as pd
 from scipy.stats import zscore
 
 def detect_outlier(df, label, rate=4):
@@ -56,7 +56,7 @@ def sort_by_date(df, name, date_label='时间', oneday_nums=6):
     '''
     DFList = []
     keys = df.keys()
-    times = pd.to_datetime(arg=data[data_label], format='%Y-%m-%d %H:%M:%S')
+    times = pd.to_datetime(arg=df[date_label], format='%Y-%m-%d %H:%M:%S')
     for group in df.groupby([times.dt.year, times.dt.month, times.dt.day]):
         if group[1].shape[0] == oneday_nums:
             df = group[1][::-1].values.copy()
