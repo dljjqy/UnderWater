@@ -5,33 +5,31 @@ from random import random
 class Encoder(nn.Module):
     def __init__(self, features, emb_dim, hide_size, n_layers, dropout):
         super().__init__()
-        self.activation = nn.Sigmoid()
         self.embedding = nn.Linear(features, emb_dim)
         self.rnn = nn.LSTM(emb_dim, hide_size, n_layers, dropout=dropout)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-        embedded = self.dropout(self.activation(self.embedding(x)))
+        embedded = self.dropout((self.embedding(x)))
         y, (hidden, cell) = self.rnn(embedded)
         return hidden, cell
 
 class Decoder(nn.Module):
     def __init__(self, features, emb_dim, hide_size, n_layers, dropout):
         super().__init__()
-        self.activation = nn.Sigmoid()
         self.embedding = nn.Linear(features, emb_dim)
         self.rnn = nn.LSTM(emb_dim, hide_size, n_layers, dropout=dropout)
         self.fc_out = nn.Linear(hide_size, features)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x, h, c):
-        embedded = self.dropout(self.activation(self.embedding(x)))
+        embedded = self.dropout(self.embedding(x))
         output, (hidden, cell) = self.rnn(embedded, (h, c))
         prediction = self.fc_out(output)
         return prediction, hidden, cell
 
 class Seq2Seq(nn.Module):
-    def __init__(self, features, hidsize=256, Eembsize=128, Dembsize=128, n_layers=2, dropout=0.5):
+    def __init__(self, features, hidsize=512, Eembsize=256, Dembsize=256, n_layers=4, dropout=0.5):
         '''
         features: How many features in a single row.
         EhidSize: The hiden size of Encoder.
@@ -51,7 +49,7 @@ class Seq2Seq(nn.Module):
         y: lPre x Features
         '''
         lPre = y.shape[0]
-        previous = x[-1:, :, :]
+        previous = torch.zeros_like(x[-1:, :, :]).type_as(y)
         predictions = torch.zeros_like(y).type_as(y)
         h, c = self.encoder(x)
 

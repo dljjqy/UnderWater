@@ -14,7 +14,7 @@ def minmaxScaler(data):
 class WaterDataSet(Dataset):
     def __init__(self, data, lGet, lPre):
         super().__init__()
-        self.data = torch.from_numpy(data).to(dtype=torch.float16)
+        self.data = torch.from_numpy(data).to(dtype=torch.float32)
         self.lGet = lGet
         self.lPre = lPre
 
@@ -26,7 +26,7 @@ class WaterDataSet(Dataset):
     
     def __len__(self):
         total = self.data.shape[0]
-        nums = total // (self.lGet + self.lPre) - 1
+        nums = (total - self.lPre) // (self.lGet + self.lPre)
         return nums
 
 def my_collate_fn(data):
@@ -41,7 +41,7 @@ def my_collate_fn(data):
 
 
 class WaterDataModule(pl.LightningDataModule):
-    def __init__(self, path, lGet=24, lPre=6, train_N=1000, val_N=10, batch_size=10):
+    def __init__(self, path, lGet=24, lPre=6, train_N=120, val_N=5, batch_size=10):
         '''
         lGet: How many rows used to predict.
         lPre: How many rows you want to predict.
@@ -49,6 +49,7 @@ class WaterDataModule(pl.LightningDataModule):
         val_N: How mant groups of data you need for validation.
                 One group equals to lGet and lPre rows of data
         '''
+        super().__init__()
         data = pd.read_csv(path, index_col=0).values.copy()
         self.data, self.maxs, self.mins = minmaxScaler(data)
         rows_for_train = (lGet + lPre) * train_N + lPre
@@ -67,10 +68,10 @@ class WaterDataModule(pl.LightningDataModule):
             pass
     
     def train_dataloader(self):
-        return DataLoader(self.train_ds, self.batch_size, shuffle=True, num_workers=6, collate_fn=my_collate_fn)
+        return DataLoader(self.train_ds,shuffle=True, num_workers=6, collate_fn=my_collate_fn, batch_size=self.batch_size)
 
     def val_dataloader(self):
-        return DataLoader(self.val_ds, 1, shuffle=False, num_workers=6, collate_fn=my_collate_fn)
+        return DataLoader(self.val_ds, shuffle=False, collate_fn=my_collate_fn, batch_size=1)
 
     def test_dataloader(self):
         pass
@@ -78,9 +79,10 @@ class WaterDataModule(pl.LightningDataModule):
 if __name__ == '__main__':
     dm = WaterDataModule('./data3.csv')
     dm.setup()
+    print(len(dm.val_ds))
     dl = dm.train_dataloader()
-    for data in dl:
-        xs, ys = data
-        print(xs.shape)
-        print(ys.shape)
-        break
+    # for data in dl:
+    #     xs, ys = data
+    #     print(xs.shape)
+    #     print(ys.shape)
+        # break

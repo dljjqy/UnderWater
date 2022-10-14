@@ -7,13 +7,14 @@ import matplotlib.pyplot as plt
 from models import Seq2Seq
 
 class SeqModule(pl.LightningModule):
-    def __init__(self, features, lGet, lPre, writer, loss=F.mse_loss):
+    def __init__(self, features, lGet, lPre, loss=F.mse_loss, lr=1e-3):
         super().__init__()
         self.net = Seq2Seq(features) 
         self.features = features
         self.lGet = lGet
         self.lPre = lPre
         self.loss = loss
+        self.lr = lr
 
     def forward(self, x, y, ratio):
         predictions = self.net(x, y, ratio)
@@ -24,15 +25,14 @@ class SeqModule(pl.LightningModule):
         predictions = self(x, y, 0.5)
         loss_value = self.loss(predictions, y)
         self.log('TrainLoss', loss_value)
-        return {'loss', loss_value}
+        return {'loss':loss_value}
 
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         predictions = self(x, y, 1)
         loss_value = self.loss(predictions, y)
-        self.log('ValLoss', loss_value)
-        
+        self.log('ValLoss', loss_value, batch_size=1)
         if batch_idx == 1:
             self.valPlotter(x, y, predictions)
         return {'valloss': loss_value}
@@ -46,11 +46,11 @@ class SeqModule(pl.LightningModule):
         lGet, lPre = x.shape[0], y.shape[0]
         length = lGet + lPre
         xx = np.linspace(0, 1, length)
-        fig = plt.figure(figsize=(5, 10))
-        ax = plt.figure()
-        ax.plot(xx[:lGet], x, '-k')
-        ax.plot(xx[lGet:], y, '--r')
-        ax.plot(xx[lGet:], pre, 'bo')
+        fig, axes = plt.subplots(self.features, 1)
+        for i in range(self.features):
+            axes[i].plot(xx[:lGet], x[:, i], '-k')
+            axes[i].plot(xx[lGet:], y[:, i], '--r')
+            axes[i].plot(xx[lGet:], pre[:, i], 'bo')
         tensorboard.add_figure(tag='Validate Figure', figure=fig, global_step=self.current_epoch)
         plt.close(fig)
         return True

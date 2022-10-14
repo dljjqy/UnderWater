@@ -5,6 +5,8 @@ from dataset import WaterDataModule
 from models import Seq2Seq
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
+
+from trainer import SeqModule
 def main(kwargs):
     # Initilize the Data Module
     dm = kwargs['pl_dataModule']
@@ -13,7 +15,8 @@ def main(kwargs):
     pl_model = kwargs['pl_model']
     # Initilize Pytorch lightning trainer
     pl_trainer = pl.Trainer(
-        gpus=kwargs['gpus'],
+        accelerator='gpu',
+        devices=kwargs['gpus'],
         callbacks=kwargs['check_point'],
         max_epochs=kwargs['max_epochs'],
         precision=kwargs['precision'],
@@ -47,18 +50,18 @@ def main(kwargs):
 
 kwargs = {
     'pl_dataModule': WaterDataModule('./data3.csv', lGet=24, lPre=6, 
-                        train_N=1000, val_N=10, batch_size=10),
-    'pl_model': Seq2Seq(features=3, hidsize=256, Eembsize=128, Dembsize=128, 
-                        n_layers=2, dropout=0.5),
+                        train_N=100, val_N=5, batch_size=2),
+    # 'pl_model': Seq2Seq(features=3, hidsize=256, Eembsize=128, Dembsize=128, 
+    #                     n_layers=2, dropout=0.5),
+    'pl_model': SeqModule(features=3, lGet=24, lPre=6),
     'gpus': 1,
-    'check_point':ModelCheckpoint(monitor= 'TrainLoss', mode='min', every_n_train_steps=0,
-                                        every_n_epochs=1, train_time_interval=None, save_top_k=3, save_last=True,),
-    'max_epochs': 150,
+    'check_point':ModelCheckpoint(monitor= 'TrainLoss', mode='min' , every_n_epochs=1, save_top_k=3, save_last=True,),
+    'max_epochs': 300,
     'precision': 32,
     'check_val_every_n_epoch': 1,
-    'logger':TensorBoardLogger('./lightning_logs/', 'test_train'),
+    'logger':TensorBoardLogger(save_dir='./'),
     'mode': 'fit',
-    'ckpt': False
+    'ckpt_path': False
 }
 
 if __name__ == '__main__':
