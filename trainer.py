@@ -18,6 +18,8 @@ class SeqModule(pl.LightningModule):
         self.lPre = lPre
         self.loss = loss
         self.lr = lr
+        self.mx = data3_max
+        self.mi = data3_min
 
     def forward(self, x, y, ratio):
         predictions = self.net(x, y, ratio)
@@ -50,7 +52,6 @@ class SeqModule(pl.LightningModule):
         y = self.descale(y)
         pre = self.descale(pre)
 
-
         lGet, lPre = x.shape[0], y.shape[0]
         length = lGet + lPre
         xx = np.linspace(0, 1, length)
@@ -58,7 +59,7 @@ class SeqModule(pl.LightningModule):
         for i in range(self.features):
             axes[i].plot(xx[:lGet], x[:, i], '-k')
             axes[i].plot(xx[lGet:], y[:, i], '--r')
-            axes[i].plot(xx[lGet:], pre[:, i], 'bo')
+            axes[i].plot(xx[lGet:], pre[:, i], '--b')
         tensorboard.add_figure(tag='Validate Figure', figure=fig, global_step=self.current_epoch)
         plt.close(fig)
         return True
@@ -71,5 +72,5 @@ class SeqModule(pl.LightningModule):
         lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
         return [optimizer], [lr_scheduler]
 
-    def descale(self, mx, mi, x):
-        return x * (mx - mi) + mi
+    def descale(self, x):
+        return x * (self.mx - self.mi) + self.mi

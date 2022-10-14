@@ -49,8 +49,8 @@ def main(kwargs):
     return True
 
 kwargs = {
-    'pl_dataModule': WaterDataModule('./data3.csv', lGet=120, lPre=30, 
-                        train_N=4500, val_N=50, batch_size=100),
+    'pl_dataModule': WaterDataModule('./data3.csv', lGet=300, lPre=30, 
+                        train_N=3500, val_N=50, batch_size=10),
     'pl_model': SeqModule(features=3, lGet=24, lPre=6),
     'gpus': 1,
     'check_point':ModelCheckpoint(monitor= 'ValLoss', mode='min' , every_n_epochs=1, save_top_k=3, save_last=True,),

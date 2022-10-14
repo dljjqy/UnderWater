@@ -17,19 +17,20 @@ class Encoder(nn.Module):
 class Decoder(nn.Module):
     def __init__(self, features, emb_dim, hide_size, n_layers, dropout):
         super().__init__()
+        self.act = nn.ReLU()
         self.embedding = nn.Linear(features, emb_dim)
         self.rnn = nn.LSTM(emb_dim, hide_size, n_layers, dropout=dropout)
         self.fc_out = nn.Linear(hide_size, features)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x, h, c):
-        embedded = self.dropout(self.embedding(x))
+        embedded = self.dropout((self.embedding(x)))
         output, (hidden, cell) = self.rnn(embedded, (h, c))
         prediction = self.fc_out(output)
         return prediction, hidden, cell
 
 class Seq2Seq(nn.Module):
-    def __init__(self, features, hidsize=128, Eembsize=256, Dembsize=256, n_layers=4, dropout=0.5):
+    def __init__(self, features, hidsize=256, Eembsize=128, Dembsize=128, n_layers=8, dropout=0.5):
         '''
         features: How many features in a single row.
         EhidSize: The hiden size of Encoder.
@@ -43,7 +44,7 @@ class Seq2Seq(nn.Module):
         self.encoder = Encoder(features, Eembsize, hidsize, n_layers, dropout)
         self.decoder = Decoder(features, Dembsize, hidsize, n_layers, dropout)
 
-    def forward(self, x, y, teach_forcing_ratio = 0.5):
+    def forward(self, x, y, teach_forcing_ratio = 0.2):
         '''
         x: lGet x Features
         y: lPre x Features
