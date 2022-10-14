@@ -49,12 +49,12 @@ def main(kwargs):
     return True
 
 kwargs = {
-    'pl_dataModule': WaterDataModule('./data3.csv', lGet=300, lPre=30, 
-                        train_N=3500, val_N=50, batch_size=10),
+    'pl_dataModule': WaterDataModule('./data3.csv', lGet=180, lPre=18, 
+                        train_N=3500, val_N=50, batch_size=100),
     'pl_model': SeqModule(features=3, lGet=24, lPre=6),
     'gpus': 1,
     'check_point':ModelCheckpoint(monitor= 'ValLoss', mode='min' , every_n_epochs=1, save_top_k=3, save_last=True,),
-    'max_epochs': 200,
+    'max_epochs': 300,
     'precision': 32,
     'check_val_every_n_epoch': 1,
     'logger':TensorBoardLogger(save_dir='./'),

@@ -30,7 +30,7 @@ class Decoder(nn.Module):
         return prediction, hidden, cell
 
 class Seq2Seq(nn.Module):
-    def __init__(self, features, hidsize=256, Eembsize=128, Dembsize=128, n_layers=8, dropout=0.5):
+    def __init__(self, features, hidsize=256, Eembsize=128, Dembsize=128, n_layers=4, dropout=0):
         '''
         features: How many features in a single row.
         EhidSize: The hiden size of Encoder.
@@ -44,7 +44,7 @@ class Seq2Seq(nn.Module):
         self.encoder = Encoder(features, Eembsize, hidsize, n_layers, dropout)
         self.decoder = Decoder(features, Dembsize, hidsize, n_layers, dropout)
 
-    def forward(self, x, y, teach_forcing_ratio = 0.2):
+    def forward(self, x, y, teach_forcing_ratio = 0.5):
         '''
         x: lGet x Features
         y: lPre x Features
