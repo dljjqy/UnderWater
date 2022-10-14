@@ -35,7 +35,7 @@ class SeqModule(pl.LightningModule):
         
         if batch_idx == 1:
             self.valPlotter(x, y, predictions)
-        return {'val loss': loss_value}
+        return {'valloss': loss_value}
 
     def valPlotter(self, x, y, pre):
         tensorboard = self.logger.experiment

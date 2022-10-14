@@ -14,23 +14,26 @@ def minmaxScaler(data):
 class WaterDataSet(Dataset):
     def __init__(self, data, lGet, lPre):
         super().__init__()
-        self.data, self.maxs, self.mins = minmaxScaler(data)
-        self.data = torch.from_numpy(self.data).to(dtype=torch.float16)
+        self.data = torch.from_numpy(data).to(dtype=torch.float16)
+        self.lGet = lGet
+        self.lPre = lPre
 
     def __getitem__(self, idx):
-        return self.data[idx]
+        k = idx * (self.lGet + self.lPre)
+        x = self.data[k: k+self.lGet, :]
+        y = self.data[k+self.lGet: k+self.lGet+self.lPre, :]
+        return x, y
     
     def __len__(self):
-        return self.data.shape[0]
+        total = self.data.shape[0]
+        nums = total // (self.lGet + self.lPre) - 1
+        return nums
 
 def my_collate_fn(data):
     '''
     Set the batch dimension as the second not first.
     L x N x F
     '''
-    print(len(data))
-    print(type(data))
-    print(data[0])
     xs, ys = zip(*data)
     xs = torch.stack(xs, dim=1)
     ys = torch.stack(ys, dim=1)
@@ -38,23 +41,33 @@ def my_collate_fn(data):
 
 
 class WaterDataModule(pl.LightningDataModule):
-    def __init__(self, path, lGet, lPre, ratio=0.9, batch_size=10):
+    def __init__(self, path, lGet=24, lPre=6, train_N=1000, val_N=10, batch_size=10):
+        '''
+        lGet: How many rows used to predict.
+        lPre: How many rows you want to predict.
+        train_N: How many groups of data you need for train.
+        val_N: How mant groups of data you need for validation.
+                One group equals to lGet and lPre rows of data
+        '''
         data = pd.read_csv(path, index_col=0).values.copy()
-        n, features = data.shape
-        train_N = int(n * ratio)
-        self.train_data = data[:train_N, :]
-        self.val_data = data[train_N:, :]
+        self.data, self.maxs, self.mins = minmaxScaler(data)
+        rows_for_train = (lGet + lPre) * train_N + lPre
+        rows_for_val = (lGet + lPre) * val_N + lPre
+        self.train_data = self.data[0:rows_for_train, :].copy()
+        self.val_data = self.data[rows_for_train: rows_for_train+rows_for_val, :].copy()
         self.batch_size = batch_size
+        self.lGet = lGet
+        self.lPre = lPre
     
     def setup(self, stage=None):
         if stage == 'fit' or stage is None:
-            self.train_ds = WaterDataSet(self.train_data)
-            self.val_ds = WaterDataSet(self.val_data)
+            self.train_ds = WaterDataSet(self.train_data, self.lGet, self.lPre)
+            self.val_ds = WaterDataSet(self.val_data, self.lGet, self.lPre)
         elif stage == 'test':
             pass
     
     def train_dataloader(self):
-        return DataLoader(self.train_ds, self.batch_size, shuffle=True, num_workers=0, collate_fn=my_collate_fn)
+        return DataLoader(self.train_ds, self.batch_size, shuffle=True, num_workers=6, collate_fn=my_collate_fn)
 
     def val_dataloader(self):
         return DataLoader(self.val_ds, 1, shuffle=False, num_workers=6, collate_fn=my_collate_fn)
@@ -69,4 +82,5 @@ if __name__ == '__main__':
     for data in dl:
         xs, ys = data
         print(xs.shape)
+        print(ys.shape)
         break
