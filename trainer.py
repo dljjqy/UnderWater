@@ -33,7 +33,7 @@ class SeqModule(pl.LightningModule):
         predictions = self(x, y, 1)
         loss_value = self.loss(predictions, y)
         self.log('ValLoss', loss_value, batch_size=1)
-        if batch_idx == 1:
+        if batch_idx == 0:
             self.valPlotter(x, y, predictions)
         return {'valloss': loss_value}
 

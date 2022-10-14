@@ -29,7 +29,7 @@ class Decoder(nn.Module):
         return prediction, hidden, cell
 
 class Seq2Seq(nn.Module):
-    def __init__(self, features, hidsize=512, Eembsize=256, Dembsize=256, n_layers=4, dropout=0.5):
+    def __init__(self, features, hidsize=128, Eembsize=64, Dembsize=64, n_layers=2, dropout=0.5):
         '''
         features: How many features in a single row.
         EhidSize: The hiden size of Encoder.
