@@ -29,7 +29,7 @@ class Decoder(nn.Module):
         return prediction, hidden, cell
 
 class Seq2Seq(nn.Module):
-    def __init__(self, features, hidsize=128, Eembsize=64, Dembsize=64, n_layers=2, dropout=0.5):
+    def __init__(self, features, hidsize=128, Eembsize=256, Dembsize=256, n_layers=4, dropout=0.5):
         '''
         features: How many features in a single row.
         EhidSize: The hiden size of Encoder.
@@ -49,7 +49,7 @@ class Seq2Seq(nn.Module):
         y: lPre x Features
         '''
         lPre = y.shape[0]
-        previous = torch.zeros_like(x[-1:, :, :]).type_as(y)
+        previous = x[-1:, :, :]
         predictions = torch.zeros_like(y).type_as(y)
         h, c = self.encoder(x)
 

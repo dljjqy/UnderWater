@@ -6,6 +6,9 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from models import Seq2Seq
 
+data3_max = np.array([20.04072773 , 8.49852272 , 9.24190783])
+data3_min = np.array([11.5777845  , 7.58387467 , 6.045     ])
+
 class SeqModule(pl.LightningModule):
     def __init__(self, features, lGet, lPre, loss=F.mse_loss, lr=1e-3):
         super().__init__()
@@ -42,6 +45,11 @@ class SeqModule(pl.LightningModule):
         x = x.cpu().numpy().squeeze()
         y = y.cpu().numpy().squeeze()
         pre = pre.cpu().numpy().squeeze()
+    
+        x = self.descale(x)
+        y = self.descale(y)
+        pre = self.descale(pre)
+
 
         lGet, lPre = x.shape[0], y.shape[0]
         length = lGet + lPre
@@ -62,3 +70,6 @@ class SeqModule(pl.LightningModule):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
         return [optimizer], [lr_scheduler]
+
+    def descale(self, mx, mi, x):
+        return x * (mx - mi) + mi

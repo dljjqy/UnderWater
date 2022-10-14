@@ -72,7 +72,7 @@ class WaterDataModule(pl.LightningDataModule):
         return DataLoader(self.train_ds,shuffle=True, num_workers=6, collate_fn=my_collate_fn, batch_size=self.batch_size)
 
     def val_dataloader(self):
-        return DataLoader(self.val_ds, shuffle=False, num_workers=0, collate_fn=my_collate_fn, batch_size=1)
+        return DataLoader(self.val_ds, shuffle=False, num_workers=6, collate_fn=my_collate_fn, batch_size=1)
 
     def test_dataloader(self):
         pass
