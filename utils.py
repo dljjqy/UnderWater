@@ -8,7 +8,7 @@ from scipy.stats import zscore
 def dataClean(excel_path, save_path ='./data2.csv',header=2, labels=['采集时间', '水温', 'pH', '溶解氧']):
     # Read the original data and copy one.
     # 'Date' is default as the first colume.
-    df = pd.read_excel(excel_path, header=2, usecols=labels).copy()
+    df = pd.read_excel(excel_path, header=header, usecols=labels).copy()
     df.set_index(labels[0], inplace=True)
     
     # Clean the wrong data type and labeled them as 'None'
@@ -32,9 +32,9 @@ def dataClean(excel_path, save_path ='./data2.csv',header=2, labels=['采集时�
     for k in labels[1:]:
         vals = df[k].values.copy()
         smooth_vals = pd.Series(vals).rolling(window=18).mean()
-        df.loc[:, k] = vals
+        df.loc[:, k] = smooth_vals
         
-    # Sort by the date and remove incomplete data
+    # Sort by the date 
     ls = []
     df = df.reset_index(drop=False)
     times = pd.to_datetime(arg=df[labels[0]], format='%Y-%m-%d %H:%M:%S')
@@ -54,12 +54,12 @@ def compute_zscore(df, k, threshold=1.5):
     all_value = df[k].values.copy()
     indices = np.array(list(map(lambda x: not x, np.isnan(all_value))))
     true_value = all_value[indices]
-#     print(true_value.mean())
-    z_value = zscore(true_value)
+    m = np.mean(true_value)
+    s = np.std(true_value)
     
-    all_value[indices] = z_value
+    all_value[indices] = np.abs((all_value[indices] - m) / s)
     all_value = pd.Series(all_value)
-    return all_value.abs() > threshold
+    return all_value > threshold
 
 
 def detect_outlier(df, label, rate=4):
@@ -77,4 +77,4 @@ def detect_outlier(df, label, rate=4):
     upper_limit = Q3 + 1.5 * IQR
     
     all_values = pd.Series(all_values)
-    return (all_values < lower_limit)&(all_values > upper_limit)
+    return (all_values < lower_limit) | (all_values > upper_limit)
