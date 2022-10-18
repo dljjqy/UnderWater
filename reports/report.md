@@ -70,7 +70,7 @@ The other methods come from statistics.We use Zscore,Standard Deviation and modi
 # They all return a Bool type dataframe.The True value in returns
 # indicating the this value of the particular label is a outlier
 # should be None.
-def zscore(df, k, threshold=1.5):
+def zscore(df, k, threshold=2):
     all_value = df[k].values.copy()
     indices = np.array(list(map(lambda x: not x, np.isnan(all_value))))
     true_value = all_value[indices]
@@ -93,7 +93,7 @@ def modify_zscore(df, k, threshold=2):
     all_value = pd.Series(all_value)
     return all_value > threshold
 
-def detect_outlier(df, label, rate=25):
+def standard_deviation(df, label, rate=25):
     all_values = df[label].values.copy()
     indices = np.array(list(map(lambda x: not x, np.isnan(all_values))))
     true_values = all_values[indices]
@@ -159,11 +159,7 @@ df = df.astype('float64')
 df = df.abs()
 
 # Remove the outliers
-for k in df.keys():
-    vals = df[k].values.copy()
-    idxs = detect_outlier(df, k, 25)
-    vals[idxs] = None
-    df.loc[:, k] = vals
+df = remove_outliers(df)
     
 # Fill nan by interpolate
 df = df.interpolate(limit_area='outside', limit_direction='both', method='cubic')
