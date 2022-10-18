@@ -1,9 +1,5 @@
-import torch
 import numpy as np
 import pandas as pd
-import pytorch_lightning as pl
-from scipy.stats import zscore
-
 
 def dataClean(excel_path, save_path ='./data2.csv',header=2, labels=['采集时间', '水温', 'pH', '溶解氧']):
     # Read the original data and copy one.
@@ -20,7 +16,7 @@ def dataClean(excel_path, save_path ='./data2.csv',header=2, labels=['采集时�
     # Clean the Outliers
     for k in labels[1:]:
         vals = df[k].values.copy()
-        idxs = compute_zscore(df, k, 1.2)
+        idxs = zscore(df, k)
 #         idxs = detect_outlier(df, k, 4)
         vals[idxs] = None
         df.loc[:, k] = vals
@@ -47,10 +43,8 @@ def dataClean(excel_path, save_path ='./data2.csv',header=2, labels=['采集时�
     new_data.to_csv(save_path, index=False)
     return new_data
 
-def compute_zscore(df, k, threshold=1.5):
-    '''
-    使用标准差来筛选数据，返回异常数据坐标
-    '''
+    
+def zscore(df, k, threshold=1.5):
     all_value = df[k].values.copy()
     indices = np.array(list(map(lambda x: not x, np.isnan(all_value))))
     true_value = all_value[indices]
@@ -61,11 +55,19 @@ def compute_zscore(df, k, threshold=1.5):
     all_value = pd.Series(all_value)
     return all_value > threshold
 
+def modify_zscore(df, k, threshold=2):
+    all_value = df[k].values.copy()
+    indices = np.array(list(map(lambda x: not x, np.isnan(all_value))))
+    true_value = all_value[indices]
+    m = np.mean(true_value)
+    diff = all_value[indices] - m
+    median = np.median(np.abs(diff))
+    
+    all_value[indices] = np.abs(0.6745 * (diff) / median)
+    all_value = pd.Series(all_value)
+    return all_value > threshold
 
-def detect_outlier(df, label, rate=4):
-    '''
-    使用分位数来筛选数据，返回异常数据坐标
-    '''
+def detect_outlier(df, label, rate=25):
     all_values = df[label].values.copy()
     indices = np.array(list(map(lambda x: not x, np.isnan(all_values))))
     true_values = all_values[indices]
@@ -78,3 +80,11 @@ def detect_outlier(df, label, rate=4):
     
     all_values = pd.Series(all_values)
     return (all_values < lower_limit) | (all_values > upper_limit)
+
+def remove_outliers(df, method):
+    for k in df.keys():
+        vals = df[k].values.copy()
+        outlier_idx = method(df, k)
+        vals[outlier_idx] = None
+        df.loc[:, k] = vals
+    return df
