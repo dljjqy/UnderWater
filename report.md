@@ -12,7 +12,7 @@ For example,in the water quality index of WangFei island,there are fiftten indic
 * 总氮: Total nitrogen(TN).
 
 After checking the numbers in data,we could find there are many outliers between those numbers.We can see it more clearly by image.
-![Original Data](origional.png "Original Data")
+![Original Data](/images/origional.png "Original Data")
 
 First we want to remove the numbers which are absolutely wrong.For example,the numbers of conductivity should be range from 50 to 500 uS/cm,as the data comes from a river.Below we show the common range of the nine index.
 * Water temperture: (5, 30)
@@ -26,7 +26,7 @@ First we want to remove the numbers which are absolutely wrong.For example,the n
 * TN: (0, 5)
 
 Below is the figure of the data has been cutoff.
-![Cutoff Data](cutoff.png "Cutoff Data")
+![Cutoff Data](/images/cutoff.png "Cutoff Data")
 
 After we cutoff the wrong numbers which coming from measurement mistakes, there are still many outliers which may be generated from measurement error.We mainlu use Zscore and Standard Deviation mthods.[Outlier Methods](https://towardsdatascience.com/outlier-detection-part1-821d714524c#:~:text=For%20example%2C%20a%20z%2Dscore,similar%20to%20standard%20deviation%20method.).
 
