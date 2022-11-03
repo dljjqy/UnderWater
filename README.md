@@ -6,7 +6,6 @@
     1. The resolutions of the different data on time are not same.
         * Downsample the higher resolution.
         * Upsamle the lower resolution.
-        *
         * What else?
 
     2. After solving the resolution problem.Do we should merge the $X^j$ together?If we should,How?
@@ -17,13 +16,17 @@
 
 # TODO LIST:
 1. Model part:
-    1. SCINet (Working On)
-    2. L-Net
-    3. Transformers types.
+    1. LSTM (Done)
+    2. SCINet (Done)
+    3. L-Net (Working on)
+    4. Transformers types (working on).
 
 2. Loss function part:
-    1. DTW and soft DTW, DIlate
+    1. DTW and soft DTW, DIlate (Woeking on)
 
 3. Train part
-    1. Decide the window size.
-    2. Test all the possible model.
+    1. Decide the window size (lPre=42, lGet=2*lPre).
+    2. Test all the possible model. (Working on)
+
+4. Problems need to discuss:
+    1. How add whether data?
