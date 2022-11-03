@@ -98,7 +98,13 @@ def my_read_excel(excel_path, save_path, start_date, usecols=keys, header=2, ind
     df = df.resample('4H', 'index').mean()
     df = patch_up(df, 7)
     df = smooth(df, 3)
-    df = (df - df.mean())/df.std()
+    mean = df.mean().values
+    var = df.var().values
+    df = (df - mean)/var
+
+    df.loc['mean'] = mean
+    df.loc['var'] = var
+    
     df.to_csv(save_path)
     return True
 
