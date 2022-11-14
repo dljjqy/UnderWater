@@ -72,11 +72,9 @@ class WaterDataModule(pl.LightningDataModule):
         '''
         super().__init__()
         df = pd.read_csv(path, index_col=0)
-        self.mean, self.std = df.loc['mean'].values, df.loc['var'].values
-        self.mean = self.mean[..., np.newaxis]
-        self.std = self.std[..., np.newaxis]
+        self.max, self.min = df.loc['max'].values, df.loc['min'].values
 
-        df = df.drop(['mean', 'var'])
+        df = df.drop(['max', 'min'])
         
         valdf = df.values.copy()
         valdfs = df.shift(lGet).values.copy()
@@ -94,8 +92,11 @@ class WaterDataModule(pl.LightningDataModule):
         self.features = features
         self.collate = collate_fn
     
-    def descaler(self):
-        return lambda x:deScaler_meanstd(self.mean, self.std, x)
+    def descaler(self, new_axis=False):
+        if new_axis:
+            self.max = self.max[..., np.newaxis]
+            self.min = self.min[..., np.newaxis]
+        return lambda x:deScaler_minman(self.max, self.min, x)
 
 
     def setup(self, stage=None):
@@ -121,7 +122,7 @@ if __name__ == '__main__':
     dm = WaterDataModule('./data/luban.csv', features=9, lPre=42, lGet=84, batch_size=1,
             train_N=3000, val_N=1000, collate_fn=scinet_collate_fn)
     dm.setup()
-    dl = dm.val_dataloader()
+    dl = dm.train_dataloader()
     x, y = dm.val_ds[0]
     print(x[0, :])
     print(x.shape)

@@ -43,27 +43,25 @@ class SeqModule(pl.LightningModule):
         tensorboard = self.logger.experiment
         # k = np.random.randint(0, x.shape[1])
         k = 0
-        x = x[:, k, :].cpu().numpy().squeeze()
-        y = y[:, k, :].cpu().numpy().squeeze()
-        pre = pre[:, k, :].cpu().numpy().squeeze()
+        x = x[:, k, :].cpu().numpy()
+        y = y[:, k, :].cpu().numpy()
+        pre = pre[:, k, :].cpu().numpy()
 
         x = self.descaler(x)
         y = self.descaler(y)
         pre = self.descaler(pre)
+        real = np.concatenate((x, y), axis=0)
 
-        lGet, lPre = x.shape[0], y.shape[0]
-        length = lGet + lPre
+        length = real.shape[0]
         xx = np.linspace(0, 1, length)
         fig, axes = plt.subplots(self.features, 1, figsize=(20, 3*self.features), constrained_layout=True)
         for i in range(self.features):
             axes[i].set_title(self.keys[i], fontsize=20)
+            real_line = axes[i].plot(xx, real[:, i], '-k')
+            pre_line = axes[i].plot(xx[self.lGet:], pre[:, i], '-o')
             
-            input = axes[i].plot(xx[:lGet], x[:, i], '-k')
-            real = axes[i].plot(xx[lGet:], y[:, i], '--r')
-            prediction = axes[i].plot(xx[lGet:], pre[:, i], '--b')
-            
-            axes[i].legend(handles = [input[0], real[0], prediction[0]],
-                            labels = ['data', 'real', 'pre'], fontsize=15)
+            axes[i].legend(handles = [real_line[0], pre_line[0]],
+                            labels = ['real', 'pre'], fontsize=15)
         tensorboard.add_figure(tag='Validate Figure', figure=fig, global_step=self.current_epoch)
         plt.close(fig)
         return True
@@ -104,7 +102,7 @@ class SCIModule(pl.LightningModule):
         x, y = batch
         predictions = self(x)
         loss_value = self.loss(predictions, y)
-        self.log('ValLoss', loss_value, batch_size=1)
+        self.log('ValLoss', loss_value)
         if batch_idx == 0:
             self.valPoltter(x, y, predictions)
         return {'valloss': loss_value}

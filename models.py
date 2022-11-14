@@ -30,7 +30,7 @@ class Decoder(nn.Module):
         return prediction, hidden, cell
 
 class Seq2Seq(nn.Module):
-    def __init__(self, features, hidsize=512, Eembsize=256, Dembsize=256, n_layers=4, dropout=0):
+    def __init__(self, features, hidsize=128, Eembsize=64, Dembsize=64, n_layers=4, dropout=0.2):
         '''
         features: How many features in a single row.
         EhidSize: The hiden size of Encoder.
@@ -79,7 +79,7 @@ class Splitting(nn.Module):
         return (self.even(x), self.odd(x))
 
 class OneDim_DoubleConv(nn.Module):
-    def __init__(self, in_c, hid_c, out_c, kernel_size=5, stride=1, dilation=1, dropout=0.3):
+    def __init__(self, in_c, hid_c, out_c, kernel_size=5, stride=1, dilation=1, dropout=0.25):
         super().__init__()
         parts = [
             nn.Conv1d(in_c, hid_c, kernel_size, stride, 

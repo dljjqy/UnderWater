@@ -95,15 +95,16 @@ def my_read_excel(excel_path, save_path, start_date, usecols=keys, header=2, ind
     df.replace(to_replace= '--', value = np.nan, inplace=True)
     df = df.astype('float64')
     df = df.drop(df[df.index <= start_date].index)
+    df = remove_outliers(df, standard_deviation, 25)
     df = df.resample('4H', 'index').mean()
     df = patch_up(df, 7)
     df = smooth(df, 3)
-    mean = df.mean().values
-    var = df.var().values
-    df = (df - mean)/var
+    mins = df.min().values
+    maxs = df.max().values
+    df = (df - mins)/(maxs - mins)
 
-    df.loc['mean'] = mean
-    df.loc['var'] = var
+    df.loc['max'] = maxs
+    df.loc['min'] = mins
     
     df.to_csv(save_path)
     return True
