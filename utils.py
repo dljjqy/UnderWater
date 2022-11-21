@@ -71,6 +71,7 @@ def patch_up(df, size=7):
     group = df.groupby([df.index.hour])
     dfns = [pd.DataFrame(group.get_group(k)) for k in group.groups.keys()]
     dfns = [dfn.rolling(step, center=True, min_periods=1).mean() for dfn in dfns]
+    
     # Fix the rows with no true value at all. 
     all_nan_idx = df.index[df.isna().all(axis=1)]
     for idx in all_nan_idx:
