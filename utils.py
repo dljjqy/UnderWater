@@ -1,8 +1,13 @@
 import numpy as np
 import pandas as pd
+from pathlib import Path
+from datetime import timedelta
+import matplotlib.pyplot as plt
 
 keys = ['采集时间', '水温', 'pH', '溶解氧', '电导率', '浊度', '高锰酸盐指数','氨氮', '总磷', '总氮']
 
+en_keys = ['WaterTemperature', 'PH' ,'dissolved oxygen', 'Conductivity','Turbidity','PermanganateIndex',
+        'AmmoniaNitrogen','TP','TN', 'humidity','room temperature','chlorophyll','Algae density']
 def zscore(df, k, threshold=1.5):
     all_value = df[k].values.copy()
     indices = np.array(list(map(lambda x: not x, np.isnan(all_value))))
@@ -57,33 +62,63 @@ def find_miss(df):
     return myIndex.difference(dateIndex) 
 
 def smooth(df, size=60):
-    for k in df.keys():
-        vals = df[k].values.copy()
-        smooth_vals = pd.Series(vals).ewm(size).mean().values    
-        df.loc[:, k] = smooth_vals
+    smooth_df = df.ewm(size).mean()
+    not_nan_idx = ~df.isna()
+    df[not_nan_idx] = smooth_df[not_nan_idx]
     return df
 
-def patch_up(df, size=7):
-    '''
-    patch up the missing data by the mean value of previous and next seven days' data.
-    '''
-    step = 2 * size + 1
+def patch_up(df, r, limit=3):
+    # Remove the top and end illegal rows
+    start_date = df.first_valid_index().date() + timedelta(days=1)
+    end_date = df.last_valid_index().date() - timedelta(days=1)
+    df = df.loc[start_date: end_date]
+
+    # # First insert data in front, end of the dataframe
+    # front_date = df.index.min().date()
+    # end_date = df.index.max().date()
+    # for i in range(1, r+1):
+    #     front_idx = df.loc[str(front_date)].index - timedelta(days=r+i)
+    #     end_idx = df.loc[str(end_date)].index + timedelta(days=r+i)
+        
+    #     front_data = df.loc[str(front_date + timedelta(days=r+i))].values
+    #     end_data = df.loc[str(end_date - timedelta(days=r+i))].values
+        
+    #     front_dfn = pd.DataFrame(front_data, index=front_idx, columns=df.columns)
+    #     end_dfn = pd.DataFrame(end_data, index=end_idx, columns=df.columns)
+        
+    #     df = pd.concat((front_dfn, df, end_dfn))
+        
+    # Group by hour and fill nan
     group = df.groupby([df.index.hour])
-    dfns = [pd.DataFrame(group.get_group(k)) for k in group.groups.keys()]
-    dfns = [dfn.rolling(step, center=True, min_periods=1).mean() for dfn in dfns]
-    
-    # Fix the rows with no true value at all. 
-    all_nan_idx = df.index[df.isna().all(axis=1)]
-    for idx in all_nan_idx:
-        k = idx.hour // 4
-        df.loc[idx] =  dfns[k].loc[str(idx.date())].values
-    
-    # Fix the rows with true values and nan.
-    for k in df.keys():
-        nan_idx = df[k].index[df[k].isna()]
-        for idx in nan_idx:
-            hour = idx.hour // 4
-            df[k].loc[idx] = dfns[hour][k].loc[str(idx.date())]
+    df_mean = group.transform(lambda x: x.rolling(2*r+1, 1, center=True).mean())
+    dfn = df.fillna(df_mean, limit=limit)
+    return dfn
+
+def plot_df(dfn, keys=en_keys):
+    index_nums = len(dfn.keys())
+    print(dfn.keys())
+    l, h = 18, 3
+    fig, axis = plt.subplots(index_nums, 1, figsize=(l, h*index_nums), constrained_layout=True)
+    for i in range(index_nums):
+        name = keys[i]
+        dfn.plot(y=dfn.keys()[i], ax=axis[i])
+        axis[i].set_title(name, fontsize=20)
+        axis[i].set_xlabel('', fontsize=15)
+        axis[i].set_ylabel('', fontsize=15)
+        axis[i].legend([name], fontsize=15)
+
+def fujiang_factory(data_path, patch_up_r, patch_up_limit, smooth_step):
+    df=pd.read_excel(data_path, header=2, usecols=keys, index_col=0)
+    df.replace('\d*【已删除】|\d*/.\d*【已删除】',np.nan,regex=True,inplace=True)
+    df.replace('--', np.nan, inplace=True)
+    df.index=pd.to_datetime(df.index, format='%Y-%m-%d %H:%M:%S')
+    df=df.astype('float64')
+    df=df.resample('4H').mean()
+    df.loc[(df==0).all(axis=1)] = np.nan    
+    df = remove_outliers(df, standard_deviation, 25)
+    df[df < 0] = np.nan
+    df = patch_up(df, patch_up_r, patch_up_limit)
+    df = smooth(df, smooth_step)
     return df
 
 def my_read_excel(excel_path, save_path, start_date, usecols=keys, header=2, index_col=0):
@@ -109,6 +144,36 @@ def my_read_excel(excel_path, save_path, start_date, usecols=keys, header=2, ind
     
     df.to_csv(save_path)
     return True
+
+def _gen_data(df, lGet, lPre, save_path=''):
+    '''
+    Parameters:
+        df: The DataFrame came from data factory.
+        lGet: How long old data you need.
+        lPre: How long new data you predicted.
+        save_path: Where to save the .npz file.
+    '''
+    step = lGet + lPre
+    data = []
+    for i in range(df.shape[0]-step):
+        vals = df.iloc[i: i+step].values
+        if (vals != np.nan).all():
+            data.append(vals)
+    data = np.stack(data, axis=0)
+    if save_path:
+        np.save(save_path, data)
+    return np.stack(data, axis=0)
+
+def dataHander(path, lGet, lPre, save_path, func, *args):
+    p = Path(path)
+    for file in p.iterdir():
+        print(file.stem)
+        save_file_name = f'{save_path}{file.stem}'
+        describe_save_name = f'{save_path}{file.stem}_describe.csv'
+        df = func(file, *args)
+        _gen_data(df, lGet, lPre, save_file_name)
+        df.describe().to_csv(describe_save_name)
+    return 
 
 if __name__ == '__main__':
     my_read_excel(excel_path = './origional_data/泸沽湖邛海鲁班水库水质数据/原始查询/原始查询（泸沽湖湖心-泸沽湖）.xls',
