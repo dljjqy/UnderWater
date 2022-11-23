@@ -3,6 +3,7 @@ import pandas as pd
 from pathlib import Path
 from datetime import timedelta
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 keys = ['采集时间', '水温', 'pH', '溶解氧', '电导率', '浊度', '高锰酸盐指数','氨氮', '总磷', '总氮']
 
@@ -107,7 +108,7 @@ def plot_df(dfn, keys=en_keys):
         axis[i].set_ylabel('', fontsize=15)
         axis[i].legend([name], fontsize=15)
 
-def fujiang_factory(data_path, patch_up_r, patch_up_limit, smooth_step):
+def data_factory(data_path, patch_up_r, patch_up_limit, smooth_step):
     df=pd.read_excel(data_path, header=2, usecols=keys, index_col=0)
     df.replace('\d*【已删除】|\d*/.\d*【已删除】',np.nan,regex=True,inplace=True)
     df.replace('--', np.nan, inplace=True)
@@ -157,17 +158,17 @@ def _gen_data(df, lGet, lPre, save_path=''):
     data = []
     for i in range(df.shape[0]-step):
         vals = df.iloc[i: i+step].values
-        if (vals != np.nan).all():
+        if not np.isnan(vals).any():
             data.append(vals)
     data = np.stack(data, axis=0)
     if save_path:
         np.save(save_path, data)
     return np.stack(data, axis=0)
 
-def dataHander(path, lGet, lPre, save_path, func, *args):
+def dataHandler(path, lGet, lPre, save_path, func, *args):
     p = Path(path)
-    for file in p.iterdir():
-        print(file.stem)
+    for file in tqdm(p.iterdir()):
+        # print(file.stem)
         save_file_name = f'{save_path}{file.stem}'
         describe_save_name = f'{save_path}{file.stem}_describe.csv'
         df = func(file, *args)

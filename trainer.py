@@ -110,23 +110,23 @@ class SCIModule(pl.LightningModule):
     def valPoltter(self, x, y, pre):
         tensorboard = self.logger.experiment
         k = 0
-        x = x[k].cpu().numpy().squeeze()
-        y = y[k].cpu().numpy().squeeze()
-        pre = pre[k].cpu().numpy().squeeze()
+        x = x[k].cpu().numpy().squeeze().transpose()
+        y = y[k].cpu().numpy().squeeze().transpose()
+        pre = pre[k].cpu().numpy().squeeze().transpose()
+        
+        x = self.descaler(x).squeeze()
+        y = self.descaler(y).squeeze()
+        pre = self.descaler(pre).squeeze()
+        real = np.concatenate((x, y), axis=0)
 
-        x = self.descaler(x)
-        y = self.descaler(y)
-        pre = self.descaler(pre)
-        real = np.concatenate((x, y), axis=1)
-
-        xx = np.linspace(0, 1, real.shape[1])
-        fig, axes = plt.subplots(self.features, 1, figsize=(20, 3*self.features), constrained_layout=True)
+        xx = np.linspace(0, 1, real.shape[0])
+        fig, axes = plt.subplots(self.features, 1, figsize=(18, 3*self.features), constrained_layout=True)
         
         for i in range(self.features):
             axes[i].set_title(self.keys[i], fontsize=20)
             
-            real_line = axes[i].plot(xx, real[i], '-k')
-            pre_line = axes[i].plot(xx[self.lGet:], pre[i], '-r')
+            real_line = axes[i].plot(xx, real[:, i], '-k')
+            pre_line = axes[i].plot(xx[self.lGet:], pre[:, i], '-r')
             
             axes[i].legend(handles = [real_line[0], pre_line[0]],
                             labels = ['real', 'pre'], fontsize=15)

@@ -18,26 +18,25 @@ def deScaler_meanstd(mean, std, vals):
     denorm_val = vals * std + mean
     return denorm_val
 
-def deScaler_minman(max, min, vals):
+def deScaler_minmax(max, min, vals):
     denorm_val = vals * (max - min) + min
     return denorm_val
 
 
 class WaterDataSet(Dataset):
-    def __init__(self, features, data, lGet, lPre):
+    def __init__(self, data, lGet, lPre):
         super().__init__()
-        self.data = torch.from_numpy(data).to(dtype=torch.float32)
+        self.data = torch.from_numpy(data).to(torch.float32)
         self.lGet = lGet
         self.lPre = lPre
-        self.features = features
-
+        
     def __getitem__(self, idx):
-        x = self.data[idx: idx+self.lGet, self.features:]
-        y = self.data[idx: idx+self.lPre, :self.features]
+        x = self.data[idx, :self.lGet]
+        y = self.data[idx, self.lGet:]
         return x, y
     
     def __len__(self):
-        return self.data.shape[0] - self.lGet + 1
+        return self.data.shape[0]
 
 def lstm_collate_fn(data):
     '''
@@ -61,56 +60,43 @@ def scinet_collate_fn(data):
 
 
 class WaterDataModule(pl.LightningDataModule):
-    def __init__(self, path, features=3, lGet=24, lPre=6, train_N=3000, val_N=100, 
-                batch_size=10, collate_fn=lstm_collate_fn):
+    def __init__(self, path, lGet=24, lPre=6, ratio=0.9, batch_size=10, collate_fn = scinet_collate_fn):
         '''
         lGet: How many rows used to predict.
         lPre: How many rows you want to predict.
-        train_N: How many groups of data you need for train.
-        val_N: How mant groups of data you need for validation.
-                One group equals to lGet and lPre rows of data
         '''
         super().__init__()
-        df = pd.read_csv(path, index_col=0)
-        self.max, self.min = df.loc['max'].values, df.loc['min'].values
-
-        df = df.drop(['max', 'min'])
-        
-        valdf = df.values.copy()
-        valdfs = df.shift(lGet).values.copy()
-        data = np.concatenate((valdf, valdfs), axis=1)
-        data = data[~np.isnan(data).any(axis=1)]
-
-        train_end = train_N + lGet - 1
-        val_end = train_end + val_N + lGet - 1
-        self.train_data = data[0: train_end, :].copy()
-        self.val_data = data[train_end: val_end, :].copy()
-        
-        self.batch_size = batch_size
+        self.path = path
         self.lGet = lGet
         self.lPre = lPre
-        self.features = features
-        self.collate = collate_fn
-    
-    def descaler(self, new_axis=False):
-        if new_axis:
-            self.max = self.max[..., np.newaxis]
-            self.min = self.min[..., np.newaxis]
-        return lambda x:deScaler_minman(self.max, self.min, x)
-
+        data = np.load(path)
+        describe = pd.read_csv(f'{path[:-4]}_describe.csv', index_col=0)
+        mins = describe.loc['min'].values
+        maxs = describe.loc['max'].values
+        mins, maxs = mins.reshape(1, 1, -1), maxs.reshape(1, 1, -1)
+        self.descaler = lambda x: (x - mins) /(maxs - mins) 
+        self.scaler = lambda x: x * (maxs - mins) + mins
+        
+        data = self.scaler(data)
+        l = data.shape[0]
+        trainN = int(l * ratio)
+        self.train_data = data[:trainN]
+        self.val_data = data[trainN:]
+        self.batch_size = batch_size
+        self.collate_fn = collate_fn
 
     def setup(self, stage=None):
         if stage == 'fit' or stage is None:
-            self.train_ds = WaterDataSet(self.features, self.train_data, self.lGet, self.lPre)
-            self.val_ds = WaterDataSet(self.features, self.val_data, self.lGet, self.lPre)
+            self.train_ds = WaterDataSet(self.train_data, self.lGet, self.lPre)
+            self.val_ds = WaterDataSet(self.val_data, self.lGet, self.lPre)
         elif stage == 'test':
             pass
     
     def train_dataloader(self):
-        return DataLoader(self.train_ds,shuffle=True, num_workers=6, collate_fn=self.collate, batch_size=self.batch_size)
+        return DataLoader(self.train_ds,shuffle=True, num_workers=6, collate_fn=self.collate_fn, batch_size=self.batch_size)
 
     def val_dataloader(self):
-        return DataLoader(self.val_ds, shuffle=False, num_workers=6, collate_fn=self.collate, batch_size=10)
+        return DataLoader(self.val_ds, shuffle=False, num_workers=6, collate_fn=self.collate_fn ,batch_size=10)
 
     def test_dataloader(self):
         pass
@@ -119,19 +105,18 @@ class WaterDataModule(pl.LightningDataModule):
 data_module_names = {'WaterDataModule': WaterDataModule}
 
 if __name__ == '__main__':
-    dm = WaterDataModule('./data/luban.csv', features=9, lPre=42, lGet=84, batch_size=1,
-            train_N=3000, val_N=1000, collate_fn=scinet_collate_fn)
+    dm = WaterDataModule('./all_data/fujiang_1d/两河.npy', 12, 6, 0.95, 1)
     dm.setup()
     dl = dm.train_dataloader()
-    x, y = dm.val_ds[0]
-    print(x[0, :])
-    print(x.shape)
-    print(y.shape)
-    for data in dl:
-        x, y = data
-        print(x.shape)
-        print(y.shape)
-        print(x[0, :, 0])
-        break
-    # print(x[0, :])
-    # print(dm.descaler()(x))
+    for x, y in dl:
+        x = x.cpu().numpy()
+        y = y.cpu().numpy()
+        # print(x)
+        if np.isnan(x).any():
+            print(x)
+            break
+        if np.isnan(y).any():
+            print(y)
+            break
+
+    

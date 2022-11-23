@@ -156,16 +156,24 @@ class SCINet(nn.Module):
 
 
 if __name__ == '__main__':
+    import numpy as np
+    from dataset import WaterDataModule
     features = 9
-    batch_size = 8 
-    lPre = 42
+    batch_size = 1
+    lPre = 6
     lGet = 2 * lPre
-
-    x = torch.rand(batch_size, features, lGet)
+    dm = WaterDataModule('./all_data/fujiang_1d/两河.npy', lGet, lPre, 0.95, 1)
+    dm.setup()
+    dl = dm.train_dataloader()
     net = SCINet(features, lPre, lGet)
-    y = net(x)
-    print(x.shape)
-    print(y.shape)
+    for x, y in dl:
+        pre = net(x)
+        # print()
+        print(torch.nn.functional.l1_loss(pre, y))
+
+    # y = net(x)
+    # print(torch.nn.functional.l1_loss(x, y))
+
     
 
 
