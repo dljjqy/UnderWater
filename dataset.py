@@ -60,7 +60,7 @@ def scinet_collate_fn(data):
 
 
 class WaterDataModule(pl.LightningDataModule):
-    def __init__(self, path, lGet=24, lPre=6, ratio=0.9, batch_size=10, collate_fn = scinet_collate_fn):
+    def __init__(self, path, lGet=24, lPre=6, batch_size=10, collate_fn = scinet_collate_fn):
         '''
         lGet: How many rows used to predict.
         lPre: How many rows you want to predict.
@@ -71,17 +71,25 @@ class WaterDataModule(pl.LightningDataModule):
         self.lPre = lPre
         data = np.load(path)
         describe = pd.read_csv(f'{path[:-4]}_describe.csv', index_col=0)
-        mins = describe.loc['min'].values
-        maxs = describe.loc['max'].values
-        mins, maxs = mins.reshape(1, 1, -1), maxs.reshape(1, 1, -1)
-        self.descaler = lambda x: (x - mins) /(maxs - mins) 
-        self.scaler = lambda x: x * (maxs - mins) + mins
+        # mins = describe.loc['min'].values
+        # maxs = describe.loc['max'].values
+        # mins, maxs = mins.reshape(1, 1, -1), maxs.reshape(1, 1, -1)
+        # self.descaler = lambda x: (x - mins) /(maxs - mins) 
+        # self.scaler = lambda x: x * (maxs - mins) + mins
+
+        means = describe.loc['mean'].values.reshape(1, 1, -1)
+        stds = describe.loc['std'].values.reshape(1, 1, -1)
+        self.descaler = lambda x: x * stds + means
+        self.scaler = lambda x: (x - means) / stds
         
         data = self.scaler(data)
         l = data.shape[0]
-        trainN = int(l * ratio)
-        self.train_data = data[:trainN]
-        self.val_data = data[trainN:]
+        idx = np.arange(l)
+        np.random.shuffle(idx)
+        trainN = l - 200
+ 
+        self.train_data = data[idx[:trainN]]
+        self.val_data = data[idx[trainN:]]
         self.batch_size = batch_size
         self.collate_fn = collate_fn
 
@@ -96,7 +104,7 @@ class WaterDataModule(pl.LightningDataModule):
         return DataLoader(self.train_ds,shuffle=True, num_workers=6, collate_fn=self.collate_fn, batch_size=self.batch_size)
 
     def val_dataloader(self):
-        return DataLoader(self.val_ds, shuffle=False, num_workers=6, collate_fn=self.collate_fn ,batch_size=10)
+        return DataLoader(self.val_ds, shuffle=False, num_workers=0, collate_fn=self.collate_fn ,batch_size=10)
 
     def test_dataloader(self):
         pass
@@ -105,18 +113,8 @@ class WaterDataModule(pl.LightningDataModule):
 data_module_names = {'WaterDataModule': WaterDataModule}
 
 if __name__ == '__main__':
-    dm = WaterDataModule('./all_data/fujiang_1d/两河.npy', 12, 6, 0.95, 1)
+    dm = WaterDataModule('./all_data/fujiang_1d/all.npy', 18, 6, 0.95, 1)
     dm.setup()
     dl = dm.train_dataloader()
-    for x, y in dl:
-        x = x.cpu().numpy()
-        y = y.cpu().numpy()
-        # print(x)
-        if np.isnan(x).any():
-            print(x)
-            break
-        if np.isnan(y).any():
-            print(y)
-            break
 
     

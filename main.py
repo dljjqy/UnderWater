@@ -68,19 +68,18 @@ kwargs_scinet = {
     'module_kwargs':{
         'features': 9,
         'lPre': 6,
-        'lGet' : 12,
+        'lGet' : 18,
         'Tree_levels':2,
-        'hidden_size_rate':4,
+        'hidden_size_rate':6,
         'loss':F.l1_loss,
-        'lr':1e-2},
+        'lr':1e-3},
     
     'DataModule': 'WaterDataModule',
     'data_module_kwargs':{
-            'path' : './all_data/fujiang_1d/两河.npy',
+            'path' : './all_data/mtj_1d/all.npy',
             'lPre' : 6,
-            'lGet' : 12,
-            'ratio': 0.95,
-            'batch_size':32,
+            'lGet' : 18,
+            'batch_size':128,
             'collate_fn':scinet_collate_fn},
     'pl_trainer':{
         'accelerator': 'gpu',
@@ -93,7 +92,6 @@ kwargs_scinet = {
     'mode': 'fit',
     'ckpt_path': False,
     'new_axis':True,
-
 }
 
 if __name__ == '__main__':
