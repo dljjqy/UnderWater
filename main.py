@@ -76,10 +76,10 @@ kwargs_scinet = {
     
     'DataModule': 'WaterDataModule',
     'data_module_kwargs':{
-            'path' : './all_data/mtj_1d/all.npy',
+            'path' : './all_data/luguhu_1d/all.npy',
             'lPre' : 6,
             'lGet' : 18,
-            'batch_size':128,
+            'batch_size':64,
             'collate_fn':scinet_collate_fn},
     'pl_trainer':{
         'accelerator': 'gpu',
